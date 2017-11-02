@@ -44,7 +44,15 @@ import org.hibernate.criterion.Restrictions;
 public class Util {
 
     private ArrayList<LogBean> entriesItems;
+     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US);
 
+
+    /**
+     * The accesslog file to read (Path).
+     * It reads each line of the file into an arraylist.
+     * Then the array list is being saved using the saveEntries method
+     * @param fileName  Name of accesslog file
+     */
     public void fileReader(String fileName) {
 
         this.entriesItems = new ArrayList<>();
@@ -52,38 +60,27 @@ public class Util {
         //read file into stream, try-with-resources
         // try-with-resources, it auto close the resources
         try (Stream<String> lines = Files.lines(Paths.get(fileName))) {
-            //lines.forEach(System.out::println);
-
+           
             lines.forEach(line -> {
-
-                entriesItems.add(parseEntry(line));
-                // System.out.println(line);
+                entriesItems.add(parseEntry(line));               
             });
 
             // Persist the records
-            System.out.println("entriesItems.size :: " + entriesItems.size());
-            //persistLog(entriesItems);
-            saveEntries(entriesItems);
-            //testBulkSave(entriesItems);
-
-            // 
-            /*
-            for (String line : (Iterable<String>) lines::iterator) {
-                System.out.println(line);
-             records.add(parseEntry(line));
-            }
+            //System.out.println("entriesItems.size :: " + entriesItems.size());
             
-             */
+            saveEntries(entriesItems);
+           
+          
         } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
     /**
-     * Read parse each entry
+     * Parse each entry to LogBean Object
      *
-     * @param line
-     * @return
+     * @param line Line to parse
+     * @return LogBean object
      */
     public LogBean parseEntry(String line) {
         // The log format:
@@ -95,8 +92,6 @@ public class Util {
         String dateStr = matchTo(sb, "|");
         //Date date3 = parseDate(dateStr);
         Date date = parseDate2(dateStr);
-        //LocalDateTime date = parseDate3(dateStr);
-        // System.out.println("date3: " + date3);
         //System.out.println("date: " + date);
 
         String ip = matchTo(sb, "|");
@@ -114,22 +109,22 @@ public class Util {
         String userAgent = matchTo(sb, "\"");
         //System.out.println("userAgent: "+userAgent);
 
-        // Date date, String ip, String request, int status, String userAgent
-        Date today = new Date();
-
-        LocalDateTime ldt = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
-
-        // logBean.setDate(ldt);
+        // Date date, String ip, String request, int status, String userAgent     
         logBean.setDate(date);
         logBean.setIp(ip);
         logBean.setRequest(request);
         logBean.setStatus(status);
         logBean.setUserAgent(userAgent);
 
-        //System.out.println("logBean.getDate before :: " + logBean.getDate());
         return logBean;
     }
-
+    
+    /**
+     * For string processing
+     * @param sb
+     * @param delimiter
+     * @return 
+     */
     public static String matchTo(StringBuilder sb, String delimiter) {
         int x = sb.indexOf(delimiter);
         if (x == -1) {
@@ -140,13 +135,21 @@ public class Util {
         return ans;
     }
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US);
-
+   /**
+    * Parse dateString to date object
+    * @param dateStr Date string to parse
+    * @return parsed date
+    */
     public static Date parseDate(String dateStr) {
         ParsePosition pp = new ParsePosition(0);
         return dateFormat.parse(dateStr, pp);
     }
 
+     /**
+    * Parse dateString to date object
+    * @param dateStr Date string to parse
+    * @return parsed date
+    */
     public Date parseDate2(String dateStr) {
 
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SS");
@@ -163,47 +166,14 @@ public class Util {
 
         return date;
     }
-
-    public Date parseDate3(String dateStr) {
-//  String startString = "2017-01-01.13:00:00";
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss");
-        Date date = null;
-
-        try {
-            date = formatter.parse(dateStr);
-            //System.out.println("date :: " + date);
-
-        } catch (ParseException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        return date;
-    }
-
-    public LocalDateTime convertDateToLocalTime(String date) {
-        return LocalDateTime.of(LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd.HH:mm:ss")),
-                LocalDateTime.now().toLocalTime()
-        );
-    }
+  
 
     /**
-     * This calculate end date
-     *
+     * To determine the end date based on startDate and duration
      * @param startDate The start date
-     * @param duration the duration
-     * @return the calculated date
+     * @param duration Hourly or Daily
+     * @return computed end date
      */
-    public LocalDateTime calEndDate(String startDate, String duration) {
-
-        if ("hourly".equalsIgnoreCase(duration)) {
-            return convertDateToLocalTime(startDate).plusHours(1);
-        } else if ("daily".equalsIgnoreCase(duration)) {
-            return convertDateToLocalTime(startDate).plusDays(1);
-        }
-        return null;
-    }
-
     public Date determineEndDate(String startDate, String duration) {
 
         if ("hourly".equalsIgnoreCase(duration)) {
@@ -214,6 +184,12 @@ public class Util {
         return null;
     }
 
+    /**
+     * To add hours to date
+     * @param date Date
+     * @param hours numbers of hours to be added
+     * @return  computed date
+     */
     public Date datePlusHours(String date, int hours) {
 
         Date ddate = parseDate(date);
@@ -225,6 +201,223 @@ public class Util {
         return calendar.getTime();
     }
 
+    
+
+    /**
+     * TO save log entries from the file.
+     * It takes a list of LogBean object, iterate and persist 
+     * @param entriesItems logBean list to persist
+     */
+    public void saveEntries(List<LogBean> entriesItems) {
+        //Session session = sessionFactory.openSession();
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction tx = session.beginTransaction();
+        Log log = null;
+
+        int i = 0;
+        int batchSize = 50; //Same as the JDBC batch size
+        for (LogBean item : entriesItems) {
+            log = new Log();
+            log.setDate(item.getDate());
+            log.setIp(item.getIp());
+            log.setRequest(item.getRequest());
+            log.setStatus(item.getStatus());
+            log.setUserAgent(item.getUserAgent());
+
+            session.save(log);
+            if (i % batchSize == 0) // Same as the JDBC batch size
+            {
+                //flush a batch of inserts and release memory:
+                session.flush();
+                session.clear();
+            }
+
+            i++;
+        }
+
+        tx.commit();
+        session.close();
+    }
+
+      /**
+     * To save blocked ip.
+     * It takes a  ArrayList<BlockedIPAddress> object, iterate and persist 
+     * @param entriesItems itemss to persist
+     */
+    public void saveBulkComments(ArrayList<BlockedIPAddress> entriesItems) {
+
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction tx = session.beginTransaction();
+        BlockedIPAddress blockedIPAddress = null;
+
+        int i = 0;
+        int batchSize = 50; //Same as the JDBC batch size
+        for (BlockedIPAddress item : entriesItems) {
+            blockedIPAddress = new BlockedIPAddress();
+
+            blockedIPAddress.setBlockedDate(item.getBlockedDate());
+            blockedIPAddress.setIp(item.getIp());
+            blockedIPAddress.setComment(item.getComment());
+            blockedIPAddress.setNoOfRequest(item.getNoOfRequest());
+
+            session.save(blockedIPAddress);
+            if (i % batchSize == 0) // Same as the JDBC batch size
+            {
+                //flush a batch of inserts and release memory:
+                session.flush();
+                session.clear();
+            }
+
+            i++;
+        }
+
+        tx.commit();
+        session.close();
+    }
+    
+    /**
+     * Main operation that does the 
+     * @param startDateString
+     * @param duration
+     * @param threshold 
+     */
+    public void performOperation(String startDateString, String duration, int threshold) {
+
+        Date startDate = parseDate(startDateString);        
+        Date endDate = determineEndDate(startDateString, duration);
+
+        ArrayList<BlockedIPAddress> ipRequestResult = findIPRequests(startDate, endDate, threshold);
+
+        // Print blocked IPs to console     
+        String title = "IP with  more than " + threshold + " requests between " + startDate.toString() + " and " + endDate.toString();
+       printToConsole(ipRequestResult, title);       
+
+        // Save blocked ips
+        saveBulkComments(ipRequestResult);
+    }
+
+    /**
+     * Gets a list of IPs that exceeds the threshold between start and end dte
+     * @param dstartDate Start date
+     * @param dendDate End date
+     * @param threshold threshold
+     * @return List of IPs that exceeds threshold
+     */
+    public ArrayList<BlockedIPAddress> findIPRequests(Date dstartDate, Date dendDate, int threshold) {
+
+        Session session = HibernateUtil.getSessionFactory().openSession();
+
+        Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String startDate = formatter.format(dstartDate);
+        String endDate = formatter.format(dendDate);
+
+        ArrayList<BlockedIPAddress> list = null;
+        BlockedIPAddress blockedIPAddress = null;
+
+        String sql = "SELECT b.ip , COUNT(ip) as requests "
+                + " FROM "
+                + "logs AS b WHERE "
+                + " b.date BETWEEN  '" + startDate + "' AND '" + endDate + "' "
+                + " GROUP BY ip HAVING requests > " + threshold;
+
+        //System.out.println("sql :: " + sql);
+        SQLQuery query = session.createSQLQuery(sql);
+        Iterator<Object[]> results = query.list().iterator();
+        int i = 0;
+        String comment = "Exceeded more than " + threshold + " requests between " + startDate + " and " + endDate;
+        Date date = new Date();
+        while (results.hasNext()) {
+            i = 0;
+            if (list == null) {
+                list = new ArrayList<BlockedIPAddress>();
+            }
+            blockedIPAddress = new BlockedIPAddress();
+
+            Object[] row = results.next();
+
+            blockedIPAddress.setIp((String) row[i++]);
+            //Integer noOfRequest = ((BigInteger) row[i++]).intValueExact();            
+            blockedIPAddress.setNoOfRequest(((BigInteger) row[i++]).intValueExact());
+            blockedIPAddress.setComment(comment);
+            blockedIPAddress.setBlockedDate(date);
+
+            list.add(blockedIPAddress);
+        }
+        //System.out.println("list.size() :: " + list.size());
+        
+        return list;
+    }
+
+   
+/**
+ * This prints the list of blocked items to the console
+ * @param blockedIPAddresses Arraylist of items to be blocked
+ * @param title  Title of table printed in the console
+ */
+    public void printToConsole(ArrayList<BlockedIPAddress> blockedIPAddresses, String title) {             
+        
+        
+        System.out.println("\n------------------------------------------------------------------------------------------------------");
+	 System.out.println("" + title);
+        System.out.println("------------------------------------------------------------------------------------------------------");
+	System.out.println("  IP             :                               COMMENT  ");
+	 System.out.println("------------------------------------------------------------------------------------------------------");
+	blockedIPAddresses.stream().forEachOrdered(item->System.out.println(
+                item.getIp() + " : " + item.getComment()
+						));
+			
+	 System.out.println("------------------------------------------------------------------------------------------------------");
+    }
+
+
+    
+    
+    
+    /*
+    
+    public List<Log> findIp(Date startDate, Date endDate, int threshold) {
+
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction tx = session.beginTransaction();
+
+        System.out.println("startDate :: " + startDate);
+        System.out.println("endDate :: " + endDate);
+
+        Criteria crit = session.createCriteria(Log.class);
+
+        crit.add(Restrictions.eq("ip", "192.168.234.82"));
+
+        crit.add(Restrictions.ge("date", startDate));
+        crit.add(Restrictions.le("date", endDate));
+
+        // System.out.println("crit.toString() :: " + crit.toString());
+        System.out.println("crit.list().size() :: " + crit.list().size());
+        return crit.list();
+    }
+
+    public List<Log> findByIp(Date startDate, Date endDate, int threshold) {
+
+        Session session = HibernateUtil.getSessionFactory().openSession();
+
+        System.out.println("startDate :: " + startDate);
+        System.out.println("endDate :: " + endDate);
+
+        Criteria crit = session.createCriteria(Log.class);
+
+        //crit.add(Restrictions.eq("ip", "192.168.234.82"));        
+        crit.add(Restrictions.ge("date", startDate));
+        crit.add(Restrictions.le("date", endDate));
+
+        // System.out.println("crit.toString() :: " + crit.toString());
+        System.out.println("crit.list().size() :: " + crit.list().size());
+
+        List<Log> logList = crit.list();
+        
+        return logList;
+    }
+
+    
+    
     public void persistLog(List<LogBean> entriesItems) {
         Session session = null;
         Transaction transaction = null;
@@ -267,124 +460,7 @@ public class Util {
         }
 
     }
-
-    public void saveEntries(List<LogBean> entriesItems) {
-        //Session session = sessionFactory.openSession();
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        Transaction tx = session.beginTransaction();
-        Log log = null;
-
-        int i = 0;
-        int batchSize = 50; //Same as the JDBC batch size
-        for (LogBean item : entriesItems) {
-            log = new Log();
-            log.setDate(item.getDate());
-            log.setIp(item.getIp());
-            log.setRequest(item.getRequest());
-            log.setStatus(item.getStatus());
-            log.setUserAgent(item.getUserAgent());
-
-            session.save(log);
-            if (i % batchSize == 0) // Same as the JDBC batch size
-            {
-                //flush a batch of inserts and release memory:
-                session.flush();
-                session.clear();
-            }
-
-            i++;
-        }
-
-        tx.commit();
-        session.close();
-    }
-
-    public void saveBulkComments(ArrayList<BlockedIPAddress> entriesItems) {
-
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        Transaction tx = session.beginTransaction();
-        BlockedIPAddress blockedIPAddress = null;
-
-        int i = 0;
-        int batchSize = 50; //Same as the JDBC batch size
-        for (BlockedIPAddress item : entriesItems) {
-            blockedIPAddress = new BlockedIPAddress();
-
-            blockedIPAddress.setBlockedDate(item.getBlockedDate());
-            blockedIPAddress.setIp(item.getIp());
-            blockedIPAddress.setComment(item.getComment());
-            blockedIPAddress.setNoOfRequest(item.getNoOfRequest());
-
-            session.save(blockedIPAddress);
-            if (i % batchSize == 0) // Same as the JDBC batch size
-            {
-                //flush a batch of inserts and release memory:
-                session.flush();
-                session.clear();
-            }
-
-            i++;
-        }
-
-        tx.commit();
-        session.close();
-    }
-
-    public List<Log> findIp(Date startDate, Date endDate, int threshold) {
-
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        Transaction tx = session.beginTransaction();
-
-        System.out.println("startDate :: " + startDate);
-        System.out.println("endDate :: " + endDate);
-
-        Criteria crit = session.createCriteria(Log.class);
-
-        crit.add(Restrictions.eq("ip", "192.168.234.82"));
-
-        crit.add(Restrictions.ge("date", startDate));
-        crit.add(Restrictions.le("date", endDate));
-
-        // System.out.println("crit.toString() :: " + crit.toString());
-        System.out.println("crit.list().size() :: " + crit.list().size());
-        return crit.list();
-    }
-
-    public List<Log> findByIp(Date startDate, Date endDate, int threshold) {
-
-        Session session = HibernateUtil.getSessionFactory().openSession();
-
-        System.out.println("startDate :: " + startDate);
-        System.out.println("endDate :: " + endDate);
-
-        Criteria crit = session.createCriteria(Log.class);
-
-        //crit.add(Restrictions.eq("ip", "192.168.234.82"));        
-        crit.add(Restrictions.ge("date", startDate));
-        crit.add(Restrictions.le("date", endDate));
-
-        // System.out.println("crit.toString() :: " + crit.toString());
-        System.out.println("crit.list().size() :: " + crit.list().size());
-
-        List<Log> logList = crit.list();
-
-        /*
-        Map<String, List<Log>> logMap = logList.stream()
-                .collect(Collectors.groupingBy(Log::getIp));
-         */
- /*
-        logList.stream()
-                .collect(Collectors.groupingBy(Log::getIp));
-         */
- /*
-        Stream<Student> students = persons.stream()
-                .filter(p -> p.getAge() > 18)
-                .map(person -> new Student(person));
-         */
-        //System.out.println("productsByArticle :: " + logMap.size());
-        return logList;
-    }
-
+    
     public HashMap<String, List<Log>> groupRecordsByIpAddress(List<Log> logList) {
         return (HashMap<String, List<Log>>) logList.stream()
                 .collect(Collectors.groupingBy(Log::getIp));
@@ -398,6 +474,12 @@ public class Util {
                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
     }
 
+      public LocalDateTime convertDateToLocalTime(String date) {
+        return LocalDateTime.of(LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd.HH:mm:ss")),
+                LocalDateTime.now().toLocalTime()
+        );
+    }
+      
     public void performOperation3(String dateString, String duration, int threshold) {
 
         LocalDateTime startDate = convertDateToLocalTime(dateString);
@@ -419,11 +501,7 @@ public class Util {
                         e.getValue().stream().distinct()
                                 .collect(Collectors.groupingBy(Log::getStatus))
                                 .entrySet().stream().forEach(leSet -> {
-                                    /*
-                                    BlockedIPAddress comment = new BlockedIPAddress(leSet.getKey(), returnComment(leSet.getKey()), addresses);
-                                    comments.add(comment);
-                                    session.saveOrUpdate(comment);
-                                     */
+                                   
                                 });
                         transaction.commit();
 
@@ -436,7 +514,8 @@ public class Util {
                 });
 
     }
-
+    
+    
     public List<Log> findByStartAndEndDate(Date startDate, Date endDate) {
 
         Session session = HibernateUtil.getSessionFactory().openSession();
@@ -450,127 +529,17 @@ public class Util {
         //System.out.println("crit.list().size() :: " + crit.list().size());        
         return crit.list();
     }
-
-    public void performOperation(String startDateString, String duration, int threshold) {
-
-        Date startDate = parseDate(startDateString);        
-        Date endDate = determineEndDate(startDateString, duration);
-
-        ArrayList<BlockedIPAddress> ipRequestResult = findIPRequests(startDate, endDate, threshold);
-
-        // Print blocked IPs to console
-        //  int threshold = 100;
-        //String startDate = "2017-10-4";
-        //String endDate = "2017-10-10";
-       // String title = "IP with  more than " + threshold + " requests between " + startDate + " and " + endDate;
-        
-        String title = "IP with  more than " + threshold + " requests between " + startDate.toString() + " and " + endDate.toString();
-       printToConsole(ipRequestResult, title);
-        //printToConsole(ipRequestResult);
-
-        // Save blocked ips
-        saveBulkComments(ipRequestResult);
-    }
-
-    public ArrayList<BlockedIPAddress> findIPRequests(Date dstartDate, Date dendDate, int threshold) {
-
-        Session session = HibernateUtil.getSessionFactory().openSession();
-
-        Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String startDate = formatter.format(dstartDate);
-        String endDate = formatter.format(dendDate);
-
-        ArrayList<BlockedIPAddress> list = null;
-        BlockedIPAddress blockedIPAddress = null;
-
-        String sql = "SELECT b.ip , COUNT(ip) as requests "
-                + " FROM "
-                + "logs AS b WHERE "
-                + " b.date BETWEEN  '" + startDate + "' AND '" + endDate + "' "
-                + " GROUP BY ip HAVING requests > " + threshold;
-
-        //System.out.println("sql :: " + sql);
-        SQLQuery query = session.createSQLQuery(sql);
-        Iterator<Object[]> results = query.list().iterator();
-        int i = 0;
-        String comment = "Exceeded more than " + threshold + " requests between " + startDate + " and " + endDate;
-        Date date = new Date();
-        while (results.hasNext()) {
-            i = 0;
-            if (list == null) {
-                list = new ArrayList<BlockedIPAddress>();
-            }
-            blockedIPAddress = new BlockedIPAddress();
-
-            Object[] row = results.next();
-
-            blockedIPAddress.setIp((String) row[i++]);
-            //Integer noOfRequest = ((BigInteger) row[i++]).intValueExact();            
-            blockedIPAddress.setNoOfRequest(((BigInteger) row[i++]).intValueExact());
-            blockedIPAddress.setComment(comment);
-            blockedIPAddress.setBlockedDate(date);
-
-            list.add(blockedIPAddress);
-        }
-        System.out.println("list.size() :: " + list.size());
-        return list;
-    }
-
-    public Date convertedLocalDateTimeToDate(LocalDateTime localDateTime) {
+    
+    
+     public Date convertedLocalDateTimeToDate(LocalDateTime localDateTime) {
 
         Date convertedDatetime = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
 
         return convertedDatetime;
     }
+    
+    */
 
-    public void printToConsole(ArrayList<BlockedIPAddress> blockedIPAddresses, String title) {
-        //blockedIPAddresses.forEach(name -> System.out.println(name));
-        //blockedIPAddresses.forEach(System.out::println);
-        /*
-        System.out.println("_______________________________________");
-	System.out.println("BLOCKED IP vs COMMENT AGGREGATE LOGS ");
-	System.out.println("________________________________________");
-	System.out.println("  IP      :      COMMENT  ");
-	System.out.println("________________________________________");
-	blockedIPAddresses.stream().forEachOrdered(c->System.out.println(
-                c.getIp() +" : "+c.getComment()
-						));
-			
-	System.out.println("________________________________________");
-        
-         */
-      
-        /*
-        System.out.println("\n---------------------------------------------------------------------------------------");
-        System.out.println("" + title);
-        System.out.println("---------------------------------------------------------------------------------------");
-        
-       String IP = "IP";
-       int HI = 4;
-       String COMMENT = "COMMENT";
-       
-        System.out.format("%32s%10d%16s", IP, HI, COMMENT);
-         System.out.println("-----------------------------");
-         blockedIPAddresses.stream().forEachOrdered(c->System.out.println(
-                c.getIp() +" | "+c.getComment()
-						));
-        
-        System.out.println ("-----------------------------");
-        
-        */
-        
-        
-        
-        System.out.println("\n------------------------------------------------------------------------------------------------------");
-	 System.out.println("" + title);
-        System.out.println("------------------------------------------------------------------------------------------------------");
-	System.out.println("  IP             :                               COMMENT  ");
-	 System.out.println("------------------------------------------------------------------------------------------------------");
-	blockedIPAddresses.stream().forEachOrdered(c->System.out.println(
-                c.getIp() +" : "+c.getComment()
-						));
-			
-	 System.out.println("------------------------------------------------------------------------------------------------------");
-    }
 
+    
 }

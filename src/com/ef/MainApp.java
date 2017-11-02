@@ -71,7 +71,7 @@ public class MainApp {
             default:
                 System.out.println(durationArgs + "Is not a valid value");
                 System.out.println("Allowed values for durations are  \"daily\" and \"hourly\"");
-                throw new IllegalArgumentException("Invaliduration : " + durationArgs);
+                throw new IllegalArgumentException("Invalid duration : " + durationArgs);
         }
         return duration;
     }
