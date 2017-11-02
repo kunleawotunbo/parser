@@ -22,25 +22,25 @@ public class MainApp {
         Util util = new Util();
         System.out.println("Your first argument is: " + array[0]);
         System.out.println("Your Second argument is: " + array[1]);
-
+        
+        
+        String accesslog = decodeArgs(array).get("accesslog");
         String duration = decodeArgs(array).get("duration");
         String startString = decodeArgs(array).get("startDate");
         int threshold = Integer.parseInt(decodeArgs(array).get("threshold"));
-
-        System.out.println(startString + " : " + duration + " : " + threshold);
         
-        Date startDate = null;
-        LocalDate endDate = null;
+        // Read file
+        util.fileReader(accesslog);
         
-          startDate = util.parseDate3(startString);
-          //endDate =  util.calEndDate(startString, duration);
-          
-          // We now have start and end date, now query the table
-          util.findByIp(startDate, endDate, threshold);
-             
-        
-        // 
+         System.out.println(startString + " : " + duration + " : " + threshold);
+         
+         // 
         String dDuration = determineDuration(duration);
+        
+        // Perform operations
+         util.performOperation(startString, duration, threshold);     
+        
+        
        
 
         // fileAnalyzer.mapIpAddressAgainstComment("2000-10-21.21:55:36","daily",1);
@@ -71,7 +71,7 @@ public class MainApp {
             default:
                 System.out.println(durationArgs + "Is not a valid value");
                 System.out.println("Allowed values for durations are  \"daily\" and \"hourly\"");
-                throw new IllegalArgumentException("Invalidduration : " + durationArgs);
+                throw new IllegalArgumentException("Invaliduration : " + durationArgs);
         }
         return duration;
     }

@@ -23,29 +23,39 @@ public class Parser {
 
         Util util = new Util();
         MainApp mainApp = new MainApp();
-         String fileName = "C:/logs/access.log";
+        String fileName = "C:/logs/access.log";
         //String fileName = "C:/logs/access_small.log";
 
-        util.fileReader(fileName);
-       
-        Date startDate = null;
-        Date endDate = null;
-
-
-       // util.findIp(startDate, endDate, threshold);
-       
-       
-    //String startString = "2017-01-01.00:00:00";
-       String startString = "2017-01-01.13:00:00";
-        String endString = "2017-01-01.14:00:00";
-      
         
-        startDate = util.parseDate3(startString);
-             endDate =  util.parseDate3(endString);
-             
-             
-        //util.findIp(startDate, endDate, 0);
-        util.findByIp(startDate, endDate, 0);
+       
+        // util.findIp(startDate, endDate, threshold);
+        //String startString = "2017-01-01.00:00:00";
+        //String startDateStr = "2017-01-01.13:00:00";
+        String endDateStr = "2017-01-01.14:00:00";
+        
+        // For Question 1
+        // String duration = "hourly";
+        // int threshold = 100;
+        
+         //String startDateStr = "2017-01-01.15:00:00";
+         //String duration = "hourly";
+         //int threshold = 200;
+         
+          String startDateStr = "2017-01-01.00:00:00";
+         String duration = "daily";
+         int threshold = 500;
+
+      
+        // For Question 2
+        //String duration = "daily";
+        //int threshold = 250;
+
+        
+        // Ready log
+       // util.fileReader(fileName);
+        //util.performOperation(startDateStr, duration, threshold);
+        
+        
         
         
         
@@ -59,7 +69,7 @@ public class Parser {
         //String[] array = {"--startDate=2000-10-21.21:55:36", "--duration=daily", "--threshold=1"};
         // Check if arguments parsed at the point of running tool greater the one args
         if (args.length > 0) {
-            //runApp(util,args );
+        // file path, args
             mainApp.runApp(util, args);
         } else {
             System.out.println("Sorry: YOU DON'T RUN THE TOOL THAT WAY..");

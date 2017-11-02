@@ -5,7 +5,6 @@
  */
 package com.ef.model;
 
-import java.io.Serializable;
 import java.util.Date;
 import javax.persistence.Basic;
 import javax.persistence.Column;
@@ -14,39 +13,35 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import javax.persistence.TableGenerator;
 
 /**
  *
  * @author Olakunle Awotunbo
  */
+
 @Entity
-@Table(name = "logs")
-public class Log implements Serializable {
-
+@Table(name = "blocked_ipaddresses")
+public class BlockedIPAddress {
+    
     private static long serialVersionUID = 1L;
-
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "id")
-    private Integer id;    
-   
-    @Column(name = "date")
-    private Date date;
-
-    @Column(name = "ip")
+    private Integer id;
+    
+     @Column(name = "ip")
     private String ip;
-
-    @Column(name = "request")
-    private String request;
-
-    @Column(name = "status")
-    private int status;
-
-    @Column(name = "user_agent")
-    private String userAgent;
+    
+    @Column(name = "no_of_request")
+    private Integer noOfRequest;
+    
+     @Column(name = "comment")
+    private String comment;
+     
+     @Column(name = "blocked_date")
+    private Date blockedDate;
 
     /**
      * @return the serialVersionUID
@@ -77,17 +72,31 @@ public class Log implements Serializable {
     }
 
     /**
-     * @return the date
+     * @return the noOfRequest
      */
-    public Date getDate() {
-        return date;
+    public Integer getNoOfRequest() {
+        return noOfRequest;
     }
 
     /**
-     * @param date the date to set
+     * @param noOfRequest the noOfRequest to set
      */
-    public void setDate(Date date) {
-        this.date = date;
+    public void setNoOfRequest(Integer noOfRequest) {
+        this.noOfRequest = noOfRequest;
+    }
+
+    /**
+     * @return the comment
+     */
+    public String getComment() {
+        return comment;
+    }
+
+    /**
+     * @param comment the comment to set
+     */
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
     /**
@@ -105,44 +114,18 @@ public class Log implements Serializable {
     }
 
     /**
-     * @return the request
+     * @return the blockedDate
      */
-    public String getRequest() {
-        return request;
+    public Date getBlockedDate() {
+        return blockedDate;
     }
 
     /**
-     * @param request the request to set
+     * @param blockedDate the blockedDate to set
      */
-    public void setRequest(String request) {
-        this.request = request;
+    public void setBlockedDate(Date blockedDate) {
+        this.blockedDate = blockedDate;
     }
 
-    /**
-     * @return the status
-     */
-    public int getStatus() {
-        return status;
-    }
-
-    /**
-     * @param status the status to set
-     */
-    public void setStatus(int status) {
-        this.status = status;
-    }
-
-    /**
-     * @return the userAgent
-     */
-    public String getUserAgent() {
-        return userAgent;
-    }
-
-    /**
-     * @param userAgent the userAgent to set
-     */
-    public void setUserAgent(String userAgent) {
-        this.userAgent = userAgent;
-    }
+  
 }
