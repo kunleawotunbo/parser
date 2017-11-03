@@ -13,7 +13,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- *
+ * Main App reads the arguments parsed from the command
+ * to start the tool. It passes the values of the arguments to functions 
+ * that does appropriate checks.
  * @author Olakunle Awotunbo
  */
 public class MainApp {
@@ -38,7 +40,7 @@ public class MainApp {
         int threshold = Integer.parseInt(thresholdString);
         
         // Check if duration is correct. Only accepted hourly and daily
-        String dDuration = util.determineDuration(durationArg, duration);
+        util.determineDuration(durationArg, duration);
         
         // check is start date format is correct
         String dateFormat = "yyyy-MM-dd.HH:mm:ss";

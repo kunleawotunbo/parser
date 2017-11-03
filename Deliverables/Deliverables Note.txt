@@ -1,0 +1,119 @@
+DOCUMENTATION
+
+The goal is to write a parser in Java that parses web server access log file, loads the log to MySQL and checks if a 
+given IP makes more than a certain number of requests for the given duration. 
+
+Java was used to write the parser as required, The application uses the Hibernate framework as the persistence layer to
+retrieve POJOs (plain old Java objects) from a relational database (MySQL).
+Hibernate is framework that provides tools for object relational mapping (ORM). 
+The project was developed using Netbeans 8.2, Java 8, MySQL connector and Hibernate libraries were used.
+Some commenting were also done to give hint about what's been done.
+
+DATABASE PROPERTIES
+
+Database name : log_analyzer
+Database username: root
+Database password:  
+
+No password used for the database
+
+Kindly replace Database credentials with yours in hibernate.cfg.xml
+
+Java
+----
+
+(1) Create a java tool that can parse and load the given log file to MySQL. The delimiter of the log file is pipe (|)
+
+    The tool has been created and located in the dist folder. "parser.jar"
+
+(2) The tool takes "startDate", "duration" and "threshold" as command line arguments. "startDate" is of "yyyy-MM-dd.HH:mm:ss" 
+    format, "duration" can take only "hourly", "daily" as inputs and "threshold" can be an integer.
+
+    The tool takes 4 arguments which are "accesslog", "startDate", "duration" and "threshold"
+    The tool checks is any of the arguments is missing when the tool is being used, also it checks if
+
+    "startDate" is of "yyyy-MM-dd.HH:mm:ss" format,
+    "duration" can take only "hourly", "daily" as inputs
+    and "threshold" can be an integer.
+
+    If any of these arguments are not of the format as above, it shows to the console the format required for the arguments.
+
+
+(3) This is how the tool works
+
+    java -cp "parser.jar" com.ef.Parser --accesslog=/path/to/file --startDate=2017-01-01.13:00:00 --duration=hourly --threshold=100 
+
+    The tool will find any IPs that made more than 100 requests starting from 2017-01-01.13:00:00 to 2017-01-01.14:00:00 
+    (one hour) and print  them to console AND also load them to another MySQL table with comments on why it's blocked.
+
+    ------------------------------------------------------------------------------------------------------
+    IP with  more than 100 requests between Sun Jan 01 13:00:00 WAT 2017 and Sun Jan 01 14:00:00 WAT 2017
+    ------------------------------------------------------------------------------------------------------
+    IP             :                               COMMENT
+    ------------------------------------------------------------------------------------------------------
+    192.168.228.188 : Exceeded more than 100 requests between 2017-01-01 13:00:00 and 2017-01-01 14:00:00
+    192.168.77.101 : Exceeded more than 100 requests between 2017-01-01 13:00:00 and 2017-01-01 14:00:00
+    ------------------------------------------------------------------------------------------------------
+
+    After printing to the console, it print  them to console AND also load them to another MySQL table with comments on
+    why it's blocked. Please see Blocked_ipaddresses.png in the images folder for a screenshot of the Blocked_ipaddresses 
+    table where IPs that exceeded the threshold are loaded.
+
+
+
+SQL
+---
+
+To load the log entries, there is need for a database which MySQL was used.
+
+(1) Write MySQL query to find IPs that mode more than a certain number of requests for a given time period.
+
+    Ex: Write SQL to find IPs that made more than 100 requests starting from 2017-01-01.13:00:00 to 2017-01-01.14:00:00.
+
+
+	SELECT  ip, COUNT(ip) as requests
+	FROM logs
+	WHERE 
+	date >= '2017-01-01 13:00:00' and date <= '2017-01-01 14:00:00' 
+	GROUP BY ip
+	HAVING requests > 100;
+
+    Please see Screenshot SqlQuery1.png in the images folder.
+
+
+(2) Write MySQL query to find requests made by a given IP.
+
+    SELECT ip, COUNT(ip) as requests
+    FROM logs
+	WHERE 
+    date >= '2017-01-01 13:00:00' and date <= '2017-01-01 14:00:00' 
+	GROUP BY (ip) ;
+
+
+    Please see Screenshot SqlQuery2.png in the images folder.
+
+
+
+
+
+Deliverables
+------------
+
+(1) Java program that can be run from command line
+
+    java -cp "parser.jar" com.ef.Parser --accesslog=/path/to/file --startDate=2017-01-01.13:00:00 --duration=hourly --threshold=100 
+
+    The tool is located in the dist folder in the project.
+
+(2) Source Code for the Java program
+
+    Source code is attached. And it's Netbeans 8.2 based.
+
+(3) MySQL schema used for the log data.
+
+    Please see Schema.txt for the schema located in the Deliverables folder.
+
+(4) SQL queries for SQL test.
+
+    The SQL queries is inside Sql Queries.txt in the Deliverables folder.
+

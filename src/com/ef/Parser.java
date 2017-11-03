@@ -6,7 +6,7 @@
 package com.ef;
 
 /**
- *
+ * This acts as main entries to the app
  * @author Olakunle Awotunbo
  */
 public class Parser {
@@ -19,11 +19,14 @@ public class Parser {
         // Method to test tool
        //util.testTool();
 
-        if (args.length > 0) {
+        //if (args.length > 0) {
+        // Arguments passed should be accesslog, startDate, duration and threshold
+        if (args.length == 4) {            
             // Pass command args to main app
             mainApp.runApp(args);
         } else {
             System.out.println("Please check the arguments passed..");
+            System.out.println("Numbers of arguments you passed is " + args.length + " but required arguments is 4");
             System.out.println("The command should be similar to: ");
             System.out.println("java -cp \"parser.jar\" com.ef.Parser --accesslog=/path/to/file --startDate=2017-01-01.13:00:00 --duration=hourly --threshold=100");
             System.out.println("in your OS's console.");

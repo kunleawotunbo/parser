@@ -1,0 +1,21 @@
+
+
+CREATE TABLE `logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date` datetime DEFAULT NULL,
+  `ip` varchar(255) DEFAULT NULL,
+  `request` varchar(255) DEFAULT NULL,
+  `status` int(11) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+
+
+CREATE TABLE `blocked_ipaddresses` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `blocked_date` datetime DEFAULT NULL,
+  `comment` varchar(255) DEFAULT NULL,
+  `ip` varchar(255) DEFAULT NULL,
+  `no_of_request` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
