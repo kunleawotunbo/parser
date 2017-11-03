@@ -18,61 +18,44 @@ import java.util.stream.Stream;
  */
 public class MainApp {
 
-    public void runApp(Util fileAnalyzer, String[] array) {
-        Util util = new Util();
-        System.out.println("Your first argument is: " + array[0]);
-        System.out.println("Your Second argument is: " + array[1]);
+    public void runApp(String[] array) {
         
+        Util util = new Util();        
+       
+        String accesslogArg = "accesslog";
+        String durationArg = "duration";
+        String startDateArg = "startDate";
+        String thresholdArg = "threshold";       
+      
+        // Get each arguments
+        String accesslog = util.decodeArgs(array).get(accesslogArg);
+        String duration = util.decodeArgs(array).get(durationArg);
+        String startString = util.decodeArgs(array).get(startDateArg);
+        String thresholdString = util.decodeArgs(array).get(thresholdArg);
         
-        String accesslog = decodeArgs(array).get("accesslog");
-        String duration = decodeArgs(array).get("duration");
-        String startString = decodeArgs(array).get("startDate");
-        int threshold = Integer.parseInt(decodeArgs(array).get("threshold"));
+        // Check if threshold is integer 
+         util.isInteger(thresholdArg, thresholdString);
+        int threshold = Integer.parseInt(thresholdString);
+        
+        // Check if duration is correct. Only accepted hourly and daily
+        String dDuration = util.determineDuration(durationArg, duration);
+        
+        // check is start date format is correct
+        String dateFormat = "yyyy-MM-dd.HH:mm:ss";
+        util.checkDateFormat(startDateArg, dateFormat, startString);
         
         // Read file
-        util.fileReader(accesslog);
+        util.fileReader(accesslogArg, accesslog);
         
-         System.out.println(startString + " : " + duration + " : " + threshold);
+        // System.out.println(startString + " : " + duration + " : " + threshold);
          
-         // 
-        String dDuration = determineDuration(duration);
+         
+        
         
         // Perform operations
-         util.performOperation(startString, duration, threshold);     
+        util.performOperation(startString, duration, threshold);         
         
-        
-       
 
-        // fileAnalyzer.mapIpAddressAgainstComment("2000-10-21.21:55:36","daily",1);
-    }
-
-    public HashMap<String, String> decodeArgs(String[] array) {
-        return (HashMap<String, String>) Stream.of(array)
-                .map(elem -> elem.split("\\="))
-                .filter(elem -> elem.length == 2)
-                .collect(Collectors.toMap(e -> e[0], e -> e[1]))
-                .entrySet()
-                .stream()
-                .collect(
-                        Collectors.toMap(e -> e.getKey().split("\\-\\-")[1], e -> e.getValue()));
-
-    }
-
+    } 
   
-    public String determineDuration(String durationArgs) {
-        String duration;
-        switch (durationArgs.toLowerCase()) {
-            case "daily":
-                duration = "daily";
-                break;
-            case "hourly":
-                duration = "hourly";
-                break;
-            default:
-                System.out.println(durationArgs + "Is not a valid value");
-                System.out.println("Allowed values for durations are  \"daily\" and \"hourly\"");
-                throw new IllegalArgumentException("Invalid duration : " + durationArgs);
-        }
-        return duration;
-    }
 }

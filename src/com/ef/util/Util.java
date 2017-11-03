@@ -44,35 +44,38 @@ import org.hibernate.criterion.Restrictions;
 public class Util {
 
     private ArrayList<LogBean> entriesItems;
-     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US);
-
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US);
 
     /**
-     * The accesslog file to read (Path).
-     * It reads each line of the file into an arraylist.
-     * Then the array list is being saved using the saveEntries method
-     * @param fileName  Name of accesslog file
+     * The accesslog file to read (Path). It reads each line of the file into an
+     * arraylist. Then the array list is being saved using the saveEntries
+     * method
+     *
+     * @param fileName Name of accesslog file
      */
-    public void fileReader(String fileName) {
+    public void fileReader(String argName, String fileName) {
+        
+         //Check if argument is not null
+        checkString(argName, fileName);
 
         this.entriesItems = new ArrayList<>();
 
         //read file into stream, try-with-resources
         // try-with-resources, it auto close the resources
         try (Stream<String> lines = Files.lines(Paths.get(fileName))) {
-           
+
             lines.forEach(line -> {
-                entriesItems.add(parseEntry(line));               
+                entriesItems.add(parseEntry(line));
             });
 
             // Persist the records
             //System.out.println("entriesItems.size :: " + entriesItems.size());
-            
             saveEntries(entriesItems);
-           
-          
+
         } catch (IOException ex) {
+            System.out.println("Please check the path to accesslog if its correct");
             ex.printStackTrace();
+            throw new IllegalArgumentException("File not found ");
         }
     }
 
@@ -118,12 +121,13 @@ public class Util {
 
         return logBean;
     }
-    
+
     /**
      * For string processing
+     *
      * @param sb
      * @param delimiter
-     * @return 
+     * @return
      */
     public static String matchTo(StringBuilder sb, String delimiter) {
         int x = sb.indexOf(delimiter);
@@ -135,21 +139,23 @@ public class Util {
         return ans;
     }
 
-   /**
-    * Parse dateString to date object
-    * @param dateStr Date string to parse
-    * @return parsed date
-    */
+    /**
+     * Parse dateString to date object
+     *
+     * @param dateStr Date string to parse
+     * @return parsed date
+     */
     public static Date parseDate(String dateStr) {
         ParsePosition pp = new ParsePosition(0);
         return dateFormat.parse(dateStr, pp);
     }
 
-     /**
-    * Parse dateString to date object
-    * @param dateStr Date string to parse
-    * @return parsed date
-    */
+    /**
+     * Parse dateString to date object
+     *
+     * @param dateStr Date string to parse
+     * @return parsed date
+     */
     public Date parseDate2(String dateStr) {
 
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SS");
@@ -166,10 +172,10 @@ public class Util {
 
         return date;
     }
-  
 
     /**
      * To determine the end date based on startDate and duration
+     *
      * @param startDate The start date
      * @param duration Hourly or Daily
      * @return computed end date
@@ -186,9 +192,10 @@ public class Util {
 
     /**
      * To add hours to date
+     *
      * @param date Date
      * @param hours numbers of hours to be added
-     * @return  computed date
+     * @return computed date
      */
     public Date datePlusHours(String date, int hours) {
 
@@ -201,11 +208,10 @@ public class Util {
         return calendar.getTime();
     }
 
-    
-
     /**
-     * TO save log entries from the file.
-     * It takes a list of LogBean object, iterate and persist 
+     * TO save log entries from the file. It takes a list of LogBean object,
+     * iterate and persist
+     *
      * @param entriesItems logBean list to persist
      */
     public void saveEntries(List<LogBean> entriesItems) {
@@ -239,9 +245,10 @@ public class Util {
         session.close();
     }
 
-      /**
-     * To save blocked ip.
-     * It takes a  ArrayList<BlockedIPAddress> object, iterate and persist 
+    /**
+     * To save blocked ip. It takes a ArrayList<BlockedIPAddress> object,
+     * iterate and persist
+     *
      * @param entriesItems itemss to persist
      */
     public void saveBulkComments(ArrayList<BlockedIPAddress> entriesItems) {
@@ -252,45 +259,52 @@ public class Util {
 
         int i = 0;
         int batchSize = 50; //Same as the JDBC batch size
-        for (BlockedIPAddress item : entriesItems) {
-            blockedIPAddress = new BlockedIPAddress();
 
-            blockedIPAddress.setBlockedDate(item.getBlockedDate());
-            blockedIPAddress.setIp(item.getIp());
-            blockedIPAddress.setComment(item.getComment());
-            blockedIPAddress.setNoOfRequest(item.getNoOfRequest());
+        // Check if entries is null to avoid null pointer
+        if (null != entriesItems) {
+            for (BlockedIPAddress item : entriesItems) {
+                blockedIPAddress = new BlockedIPAddress();
 
-            session.save(blockedIPAddress);
-            if (i % batchSize == 0) // Same as the JDBC batch size
-            {
-                //flush a batch of inserts and release memory:
-                session.flush();
-                session.clear();
+                blockedIPAddress.setBlockedDate(item.getBlockedDate());
+                blockedIPAddress.setIp(item.getIp());
+                blockedIPAddress.setComment(item.getComment());
+                blockedIPAddress.setNoOfRequest(item.getNoOfRequest());
+
+                session.save(blockedIPAddress);
+                if (i % batchSize == 0) // Same as the JDBC batch size
+                {
+                    //flush a batch of inserts and release memory:
+                    session.flush();
+                    session.clear();
+                }
+
+                i++;
             }
-
-            i++;
+        } else {
+            System.out.println("NO BLOCKED IP TO SAVE IN BLOCKED IP TABLE");
         }
 
         tx.commit();
         session.close();
     }
-    
+
     /**
-     * Main operation that does the 
+     * Main operation that does the
+     *
      * @param startDateString
      * @param duration
-     * @param threshold 
+     * @param threshold
      */
     public void performOperation(String startDateString, String duration, int threshold) {
 
-        Date startDate = parseDate(startDateString);        
+        Date startDate = parseDate(startDateString);
         Date endDate = determineEndDate(startDateString, duration);
 
         ArrayList<BlockedIPAddress> ipRequestResult = findIPRequests(startDate, endDate, threshold);
 
         // Print blocked IPs to console     
         String title = "IP with  more than " + threshold + " requests between " + startDate.toString() + " and " + endDate.toString();
-       printToConsole(ipRequestResult, title);       
+        printToConsole(ipRequestResult, title);
 
         // Save blocked ips
         saveBulkComments(ipRequestResult);
@@ -298,6 +312,7 @@ public class Util {
 
     /**
      * Gets a list of IPs that exceeds the threshold between start and end dte
+     *
      * @param dstartDate Start date
      * @param dendDate End date
      * @param threshold threshold
@@ -344,202 +359,172 @@ public class Util {
             list.add(blockedIPAddress);
         }
         //System.out.println("list.size() :: " + list.size());
-        
+
         return list;
     }
 
-   
-/**
- * This prints the list of blocked items to the console
- * @param blockedIPAddresses Arraylist of items to be blocked
- * @param title  Title of table printed in the console
- */
-    public void printToConsole(ArrayList<BlockedIPAddress> blockedIPAddresses, String title) {             
-        
-        
+    /**
+     * This prints the list of blocked items to the console
+     *
+     * @param blockedIPAddresses Arraylist of items to be blocked
+     * @param title Title of table printed in the console
+     */
+    public void printToConsole(ArrayList<BlockedIPAddress> blockedIPAddresses, String title) {
+
         System.out.println("\n------------------------------------------------------------------------------------------------------");
-	 System.out.println("" + title);
+        System.out.println("" + title);
         System.out.println("------------------------------------------------------------------------------------------------------");
-	System.out.println("  IP             :                               COMMENT  ");
-	 System.out.println("------------------------------------------------------------------------------------------------------");
-	blockedIPAddresses.stream().forEachOrdered(item->System.out.println(
-                item.getIp() + " : " + item.getComment()
-						));
-			
-	 System.out.println("------------------------------------------------------------------------------------------------------");
-    }
+        System.out.println("  IP             :                               COMMENT  ");
+        System.out.println("------------------------------------------------------------------------------------------------------");
 
-
-    
-    
-    
-    /*
-    
-    public List<Log> findIp(Date startDate, Date endDate, int threshold) {
-
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        Transaction tx = session.beginTransaction();
-
-        System.out.println("startDate :: " + startDate);
-        System.out.println("endDate :: " + endDate);
-
-        Criteria crit = session.createCriteria(Log.class);
-
-        crit.add(Restrictions.eq("ip", "192.168.234.82"));
-
-        crit.add(Restrictions.ge("date", startDate));
-        crit.add(Restrictions.le("date", endDate));
-
-        // System.out.println("crit.toString() :: " + crit.toString());
-        System.out.println("crit.list().size() :: " + crit.list().size());
-        return crit.list();
-    }
-
-    public List<Log> findByIp(Date startDate, Date endDate, int threshold) {
-
-        Session session = HibernateUtil.getSessionFactory().openSession();
-
-        System.out.println("startDate :: " + startDate);
-        System.out.println("endDate :: " + endDate);
-
-        Criteria crit = session.createCriteria(Log.class);
-
-        //crit.add(Restrictions.eq("ip", "192.168.234.82"));        
-        crit.add(Restrictions.ge("date", startDate));
-        crit.add(Restrictions.le("date", endDate));
-
-        // System.out.println("crit.toString() :: " + crit.toString());
-        System.out.println("crit.list().size() :: " + crit.list().size());
-
-        List<Log> logList = crit.list();
-        
-        return logList;
-    }
-
-    
-    
-    public void persistLog(List<LogBean> entriesItems) {
-        Session session = null;
-        Transaction transaction = null;
-        try {
-            session = HibernateUtil.getSessionFactory().openSession();
-
-            //session.beginTransaction();
-            Log log = new Log();
-
-            transaction = session.beginTransaction();
-            int i = 0;
-            for (LogBean item : entriesItems) {
-
-                log.setDate(item.getDate());
-                log.setIp(item.getIp());
-                log.setRequest(item.getRequest());
-                log.setStatus(item.getStatus());
-                log.setUserAgent(item.getUserAgent());
-
-                session.save(log);
-                int batchSize = 50;
-                if (i % batchSize == 0) { //20, same as the JDBC batch size
-                    //flush a batch of inserts and release memory:
-                    session.flush();
-                    session.clear();
-                }
-
-                i++;
-            }
-            transaction.commit();
-
-        } catch (HibernateException e) {
-            transaction.rollback();
-
-            e.printStackTrace();
-        } finally {
-            if (session != null) {
-                session.close();
-            }
+        // Check if blockedIPAddresses is null to avoid null pointer
+        if (null != blockedIPAddresses) {
+            blockedIPAddresses.stream().forEachOrdered(item -> System.out.println(
+                    item.getIp() + " : " + item.getComment()
+            ));
+        } else {
+            System.out.println("NO IP FOUND");
         }
 
-    }
-    
-    public HashMap<String, List<Log>> groupRecordsByIpAddress(List<Log> logList) {
-        return (HashMap<String, List<Log>>) logList.stream()
-                .collect(Collectors.groupingBy(Log::getIp));
+        System.out.println("------------------------------------------------------------------------------------------------------");
     }
 
-    public HashMap<String, List<Log>> groupRecordsByIpAddress(List<Log> logList, int threshhold) {
-        return (HashMap<String, List<Log>>) groupRecordsByIpAddress(logList)
+    /**
+     * Used to validate duration parse to the tool
+     *
+     * @param durationArgs
+     * @return
+     */
+    public String determineDuration(String argName, String durationArgs) {
+        
+         //Check if argument is not null
+        checkString(argName, durationArgs);
+        
+        String duration;
+        switch (durationArgs.toLowerCase()) {
+            case "daily":
+                duration = "daily";
+                break;
+            case "hourly":
+                duration = "hourly";
+                break;
+            default:
+                System.out.println(durationArgs + " is not a valid value");
+                System.out.println("Allowed values for durations are  \"daily\" and \"hourly\"");
+                throw new IllegalArgumentException("Invalid duration : " + durationArgs);
+        }
+        return duration;
+    }
+
+    /**
+     * Helper to get parse arguments to the tool
+     *
+     * @param array
+     * @return
+     */
+    public HashMap<String, String> decodeArgs(String[] array) {
+        return (HashMap<String, String>) Stream.of(array)
+                .map(elem -> elem.split("\\="))
+                .filter(elem -> elem.length == 2)
+                .collect(Collectors.toMap(e -> e[0], e -> e[1]))
                 .entrySet()
                 .stream()
-                .filter(a -> a.getValue().size() > threshhold)
-                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-    }
-
-      public LocalDateTime convertDateToLocalTime(String date) {
-        return LocalDateTime.of(LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd.HH:mm:ss")),
-                LocalDateTime.now().toLocalTime()
-        );
-    }
-      
-    public void performOperation3(String dateString, String duration, int threshold) {
-
-        LocalDateTime startDate = convertDateToLocalTime(dateString);
-        LocalDateTime endDate = calEndDate(dateString, duration);
-
-        List<Log> logList = findByStartAndEndDate(convertedLocalDateTimeToDate(startDate), convertedLocalDateTimeToDate(endDate));
-
-        int i = 1;
-        groupRecordsByIpAddress(logList, threshold).
-                entrySet().stream().
-                forEach(e -> {
-
-                    Session session = HibernateUtil.getSessionFactory().openSession();
-                    Transaction transaction = null;
-                    //System.out.println("i :: " + i);
-                    try {
-                        Log comment = new Log();
-                        System.out.println(e.getValue());
-                        e.getValue().stream().distinct()
-                                .collect(Collectors.groupingBy(Log::getStatus))
-                                .entrySet().stream().forEach(leSet -> {
-                                   
-                                });
-                        transaction.commit();
-
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    } finally {
-                        session.close();
-                    }
-                    // i++;
-                });
+                .collect(
+                        Collectors.toMap(e -> e.getKey().split("\\-\\-")[1], e -> e.getValue()));
 
     }
-    
-    
-    public List<Log> findByStartAndEndDate(Date startDate, Date endDate) {
 
-        Session session = HibernateUtil.getSessionFactory().openSession();
+    /**
+     * Check if string is integer
+     * @param str String to check
+     * @return 
+     */
+    public boolean isInteger(String argName, String str) {
+        boolean status = false;
+        
+        //Check if argument is not null
+        checkString(argName, str);
+        try {
+            Integer.parseInt(str);
+            status = true;
+            return status;
+        } catch (NumberFormatException nfe) {
+            status = false;
 
-        Criteria crit = session.createCriteria(Log.class);
+            nfe.printStackTrace();
+            System.out.println("Threshold '" + str + "' is  not a Number. Please check threshold value");
+            throw new IllegalArgumentException("Threshold " + str + " is  not a Number");
 
-        crit.add(Restrictions.ge("date", startDate));
-        crit.add(Restrictions.le("date", endDate));
+        }
 
-        // System.out.println("crit.toString() :: " + crit.toString());
-        //System.out.println("crit.list().size() :: " + crit.list().size());        
-        return crit.list();
+        //  return status;
+    }
+     
+    /**
+     * Check is date format is correct
+     * @param format Date format
+     * @param value Value to check
+     * @return 
+     */
+    public  boolean checkDateFormat(String argName, String format, String value) {
+        Date date = null;
+        
+        //Check if argument is not null
+        checkString(argName, value);
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat(format);
+            date = sdf.parse(value);
+            if (!value.equals(sdf.format(date))) {
+                date = null;
+                System.out.println("Date format not correct, please check format is similar to " + format);
+                throw new IllegalArgumentException("Date format not correct, please check format is similar to " + format);
+            }
+        } catch (ParseException ex) {
+            ex.printStackTrace();
+            throw new IllegalArgumentException("Date format not correct, please check format is similar to " + format);
+
+        }
+        return date != null;
     }
     
-    
-     public Date convertedLocalDateTimeToDate(LocalDateTime localDateTime) {
-
-        Date convertedDatetime = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
-
-        return convertedDatetime;
+    public boolean checkString(String arg, String str){
+        boolean status = false;
+        if(str != null && !str.isEmpty()){
+            status = true;
+            return status;
+        }else {
+            System.out.println("Please check the command. " + arg + " value is null");
+            System.out.println("java -cp \"parser.jar\" com.ef.Parser --accesslog=/path/to/file --startDate=2017-01-01.13:00:00 --duration=hourly --threshold=100");
+            throw new IllegalArgumentException(arg + " value is null");
+        }
     }
     
-    */
+    /**
+     * Method to test the tool
+     */
+    public void testTool(){
+        
+        // For testing purpose
+        
+         String accesslogArg = "accesslog";
+        String durationArg = "duration";
+        String startDateArg = "startDate";
+        String thresholdArg = "threshold";
+        
+        String fileName = "C:/logs/access.log";
+        //String fileName = "C:/logs/access_small.log";        
+        String startDateStr = "2017-01-01.13:00:00";
+        
 
+        // For Question 1
+        String duration = "hourly";
+         int threshold = 100;    
 
+        
+        // Ready log
+         fileReader(accesslogArg, fileName);
+         performOperation(startDateStr, duration, threshold);
+        
+    }
     
 }
