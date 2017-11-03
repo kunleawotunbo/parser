@@ -9,7 +9,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 
 /**
- *
+ * To take care of Hibernate start up and retrieve the session easily
  * @author Olakunle Awotunbo
  */
 public class HibernateUtil {

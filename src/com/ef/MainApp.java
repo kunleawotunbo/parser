@@ -6,11 +6,6 @@
 package com.ef;
 
 import com.ef.util.Util;
-import java.time.LocalDate;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Main App reads the arguments parsed from the command

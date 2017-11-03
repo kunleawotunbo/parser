@@ -18,6 +18,8 @@ Database password:
 No password used for the database
 
 Kindly replace Database credentials with yours in hibernate.cfg.xml
+The Hibernate’s configuration file is located in "parser\src\hibernate.cfg.xml"
+Set the "show_sql" property to true will output the Hibernate SQL statement in the console
 
 Java
 ----

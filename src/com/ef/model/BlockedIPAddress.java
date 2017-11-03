@@ -15,7 +15,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 /**
- *
+ * This model is used to represent the blocked_ipaddresses entity (Table)
  * @author Olakunle Awotunbo
  */
 

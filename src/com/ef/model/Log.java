@@ -14,10 +14,9 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import javax.persistence.TableGenerator;
 
 /**
- *
+ * This model is used to represent the logs entity (Table)
  * @author Olakunle Awotunbo
  */
 @Entity

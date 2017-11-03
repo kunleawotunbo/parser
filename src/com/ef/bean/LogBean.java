@@ -8,7 +8,7 @@ package com.ef.bean;
 import java.util.Date;
 
 /**
- *
+ * Log helper bean
  * @author Olakunle Awotunbo
  */
 public class LogBean {
