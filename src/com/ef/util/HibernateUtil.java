@@ -13,8 +13,7 @@ import org.hibernate.cfg.Configuration;
  * @author Olakunle Awotunbo
  */
 public class HibernateUtil {
-    // Reference https://www.mkyong.com/hibernate/quick-start-maven-hibernate-mysql-example/
-    
+       
     private static final SessionFactory sessionFactory = buildSessionFactory();
 
     private static SessionFactory buildSessionFactory() {
